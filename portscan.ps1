@@ -29,9 +29,9 @@ function Tcp(){
                 $tcpClient = New-Object System.Net.Sockets.TcpClient
                 $STATUS = $tcpClient.ConnectAsync($addr, $port).Wait(500)
                 if($STATUS){
-
+                    Write-Output "{$addr}:$port (OPEN)"
                 }else{
-
+                    Write-Output "{$addr}:$port (CLOSED)"
                 }
             }
             catch {
@@ -44,35 +44,43 @@ function Tcp(){
     }
 }
 
-function Udp(){
-    foreach ($addr in $addrs) { 
+function Udp {
+    foreach ($addr in $addrs) {
         foreach ($port in $ports) {
-            $udpClient = New-Object System.Net.Sockets.UdpClient(11000)
+            $udpObject = $null
             try {
-                $string = "testing"
-                $byteArray = [System.Text.Encoding]::ASCII.GetBytes($string)
-                $udpClient.Connect($addr, $port)
-            
-                $udpClient.Send($byteArray, $byteArray.Length)
                 
-                # Recebe a resposta do host
-                $remoteIpEndPoint = New-Object System.Net.IPEndPoint [System.Net.IPAddress]::Any, 0
-                $receiveBytes = $udpClient.Receive([ref]$remoteIpEndPoint)
-                $returnData = [System.Text.Encoding]::ASCII.GetString($receiveBytes)
+                $udpObject = New-Object System.Net.Sockets.UdpClient(0)
+                $udpObject.Client.ReceiveTimeout = 1000  
 
-                # Exibe a mensagem recebida e o endereço de origem
-                Write-Output "Received message: $returnData"
-                Write-Output "From IP: $($remoteIpEndPoint.Address) on Port: $($remoteIpEndPoint.Port)"
-            }
-            catch {
-                Write-Error "An error occurred: $_"
-            }
-            finally {
-                $udpClient.Close()
+                
+                $payload = [System.Text.Encoding]::ASCII.GetBytes("$(Get-Date)")
+                $udpObject.Connect($addr, $port)
+                [void]$udpObject.Send($payload, $payload.Length)
+
+                
+                $remoteEndpoint = New-Object System.Net.IPEndPoint([System.Net.IPAddress]::Any, 0)
+                $response = $udpObject.Receive([ref]$remoteEndpoint)
+                
+              
+                Write-Output "$addr`:udp/$port [OPEN]"
+            } catch [System.Net.Sockets.SocketException] {
+                
+                if ($_.Exception.ErrorCode -eq 10054) {
+                    Write-Output "$addr`:udp/$port [CLOSED]"
+                } else {
+                    
+                    Write-Output "$addr`:udp/$port [OPEN|FILTERED]"
+                }
+            } catch {
+                Write-Error "Error scanning $addr`:udp/$port - $($_.Exception.Message)"
+            } finally {
+                if ($udpObject) { $udpObject.Dispose() }
             }
         }
     }
 }
+
 
 if ($u) {
     Udp
