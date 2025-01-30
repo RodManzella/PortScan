@@ -1,6 +1,3 @@
-
-![ascii_image (1)](https://github.com/user-attachments/assets/8e470bbb-4e90-485d-8ad4-183729a28a34)
-
 # A Simple TCP/UDP port scanner script using Powershell
 
 
