@@ -49,7 +49,7 @@ function Tcp(){
 function Udp {
     foreach ($addr in $addrs) {
         foreach ($port in $ports) {
-            $UdpObject = New-Object system.Net.Sockets.Udpclient($UDPPort)
+            $UdpObject = New-Object system.Net.Sockets.Udpclient
             # Define connect parameters
             $UdpObject.Connect($addr, $ports)    
         
