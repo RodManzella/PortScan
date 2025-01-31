@@ -3,6 +3,8 @@
 param(
     [Parameter(Mandatory)] [string[]] $addrs,
     [Parameter(Mandatory)] [int[]] $ports,
+    [int]$timeout = 1000,
+    [string]$data = "$(Get-Date)",
     [switch]$u
 )
 
@@ -49,33 +51,42 @@ function Udp {
         foreach ($port in $ports) {
             $udpObject = $null
             try {
+                Write-Output "Making UDP connection to $addr : $port"
+                $udpObject = New-Object System.Net.Sockets.UdpClient
+                $udpObject.Client.ReceiveTimeout = $timeout
                 
-                $udpObject = New-Object System.Net.Sockets.UdpClient(0)
-                $udpObject.Client.ReceiveTimeout = 1000  
+                # Convert data to bytes
+                $encoder = [System.Text.Encoding]::ASCII
+                $byte = $encoder.GetBytes($data)
+                
+                # Send data
+                $bytesSent = $udpObject.Send($byte, $byte.Length, $addr, $port)
+                if ($bytesSent -ne $byte.Length) {
+                    Write-Output "Failed to send full payload"
+                }
 
-                
-                $payload = [System.Text.Encoding]::ASCII.GetBytes("$(Get-Date)")
-                $udpObject.Connect($addr, $port)
-                [void]$udpObject.Send($payload, $payload.Length)
-
-                
+                # Setup endpoint
                 $remoteEndpoint = New-Object System.Net.IPEndPoint([System.Net.IPAddress]::Any, 0)
-                $response = $udpObject.Receive([ref]$remoteEndpoint)
                 
-              
-                Write-Output "$addr`:udp/$port [OPEN]"
+                # Attempt to receive response
+                $receivedData = $udpObject.Receive([ref]$remoteEndpoint)
+                $responseString = $encoder.GetString($receivedData)
+                Write-Output "Connection Successful: Received response from $($remoteEndpoint.Address):$($remoteEndpoint.Port)"
+                
             } catch [System.Net.Sockets.SocketException] {
-                
-                if ($_.Exception.ErrorCode -eq 10054) {
-                    Write-Output "$addr`:udp/$port [CLOSED]"
+                if ($_.Exception.Message -match "did not properly respond after a period of time") {
+                    Write-Output "$addr : $port (OPEN|FILTERED) - UDP timeout (possibly open)"
+                } elseif ($_.Exception.Message -match "forcibly closed") {
+                    Write-Output "$addr : $port (CLOSED)"
                 } else {
-                    
-                    Write-Output "$addr`:udp/$port [OPEN|FILTERED]"
+                    Write-Output "Error: $($_.Exception.Message)"
                 }
             } catch {
-                Write-Error "Error scanning $addr`:udp/$port - $($_.Exception.Message)"
+                Write-Output "General error: $($_.Exception.Message)"
             } finally {
-                if ($udpObject) { $udpObject.Dispose() }
+                if ($udpObject -ne $null) {
+                    $udpObject.Close()
+                }
             }
         }
     }
