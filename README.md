@@ -10,7 +10,7 @@
 
 
 ## Example:
-##### .\portscan.ps1 -addr google.com,youtube.com -ports 53,8080,80,443,9000,3389
-##### .\portscan.ps1 -addr 192.168.1.65,192.168.1.128 -ports 53 -u
+##### .\portscan.ps1 -addrs google.com,youtube.com -ports 53,8080,80,443,9000,3389
+##### .\portscan.ps1 -addrs 192.168.1.65,192.168.1.128 -ports 53 -u
 
 #### UDP Scan not working properly (yet)
