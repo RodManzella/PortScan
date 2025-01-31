@@ -49,45 +49,18 @@ function Tcp(){
 function Udp {
     foreach ($addr in $addrs) {
         foreach ($port in $ports) {
-            $udpObject = $null
-            try {
-                Write-Output "Making UDP connection to $addr : $port"
-                $udpObject = New-Object System.Net.Sockets.UdpClient
-                $udpObject.Client.ReceiveTimeout = $timeout
-                
-                # Convert data to bytes
-                $encoder = [System.Text.Encoding]::ASCII
-                $byte = $encoder.GetBytes($data)
-                
-                # Send data
-                $bytesSent = $udpObject.Send($byte, $byte.Length, $addr, $port)
-                if ($bytesSent -ne $byte.Length) {
-                    Write-Output "Failed to send full payload"
-                }
-
-                # Setup endpoint
-                $remoteEndpoint = New-Object System.Net.IPEndPoint([System.Net.IPAddress]::Any, 0)
-                
-                # Attempt to receive response
-                $receivedData = $udpObject.Receive([ref]$remoteEndpoint)
-                $responseString = $encoder.GetString($receivedData)
-                Write-Output "Connection Successful: Received response from $($remoteEndpoint.Address):$($remoteEndpoint.Port)"
-                
-            } catch [System.Net.Sockets.SocketException] {
-                if ($_.Exception.Message -match "did not properly respond after a period of time") {
-                    Write-Output "$addr : $port (OPEN|FILTERED) - UDP timeout (possibly open)"
-                } elseif ($_.Exception.Message -match "forcibly closed") {
-                    Write-Output "$addr : $port (CLOSED)"
-                } else {
-                    Write-Output "Error: $($_.Exception.Message)"
-                }
-            } catch {
-                Write-Output "General error: $($_.Exception.Message)"
-            } finally {
-                if ($udpObject -ne $null) {
-                    $udpObject.Close()
-                }
-            }
+            $UdpObject = New-Object system.Net.Sockets.Udpclient($UDPPort)
+            # Define connect parameters
+            $UdpObject.Connect($addr, $ports)    
+        
+            # Convert current time string to byte array
+            $ASCIIEncoding = New-Object System.Text.ASCIIEncoding
+            $Bytes = $ASCIIEncoding.GetBytes("$(Get-Date -UFormat "%Y-%m-%d %T")")
+            # Send data to server
+            [void]$UdpObject.Send($Bytes, $Bytes.length)    
+        
+            # Cleanup
+            $UdpObject.Close()
         }
     }
 }
