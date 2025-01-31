@@ -50,6 +50,7 @@ function Udp {
     foreach ($addr in $addrs) {
         foreach ($port in $ports) {
             $UdpObject = New-Object system.Net.Sockets.Udpclient
+            $UdpObject.Client.ReceiveTimeout = $timeout
             # Define connect parameters
             $UdpObject.Connect($addr, $port)    
         
@@ -59,8 +60,19 @@ function Udp {
             # Send data to server
             [void]$UdpObject.Send($Bytes, $Bytes.length)    
         
-            # Cleanup
-            $UdpObject.Close()
+            # Endpoint to receive UDP responses
+            $recv = new-object System.Net.IPEndPoint([System.Net.IPAddress]::Any, 0)
+
+            try{
+                $received = $UdpObject.Receive([ref]$recv)
+                [string]$receivedData = [Text.Encoding]::ASCII.GetString($received)
+                if($receivedData){
+                    Write-Output "OPEN"
+                }
+
+            }catch{
+
+            }
         }
     }
 }
