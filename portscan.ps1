@@ -51,7 +51,7 @@ function Udp {
         foreach ($port in $ports) {
             $UdpObject = New-Object system.Net.Sockets.Udpclient
             # Define connect parameters
-            $UdpObject.Connect($addr, $ports)    
+            $UdpObject.Connect($addr, $port)    
         
             # Convert current time string to byte array
             $ASCIIEncoding = New-Object System.Text.ASCIIEncoding
